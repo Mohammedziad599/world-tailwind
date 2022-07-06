@@ -3,6 +3,8 @@ let params = new URLSearchParams(location.search);
 let countryCode = params.get("code");
 
 async function showCountryDetails(data) {
+  const nativeName = data.name.nativeName[Object.keys(data.name.nativeName)[0]].common
+
   const currencies = Object.keys(data.currencies).map(key=>{
     return data.currencies[key].name;
   });
@@ -36,7 +38,7 @@ async function showCountryDetails(data) {
       <h3 class="text-3xl font-extrabold">${data.name.common}</h3>
       <section class="flex w-full flex-col md:flex-row justify-between py-5" aria-label="Country Details">
         <div class="my-4">
-          <div class="my-1"><span class="font-semibold">Native Name:</span> ${data.name.official}</div>
+          <div class="my-1"><span class="font-semibold">Native Name:</span> ${nativeName}</div>
           <div class="my-1"><span class="font-semibold">Population:</span> ${data.population.toLocaleString('en-US')}</div>
           <div class="my-1"><span class="font-semibold">Region:</span> ${data.region}</div>
           <div class="my-1"><span class="font-semibold">Sub Region:</span> ${data.subregion}</div>
