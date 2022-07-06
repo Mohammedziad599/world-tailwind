@@ -2,6 +2,30 @@ let searchTypingTimer;
 
 let showingAllCountries = true;
 
+let counteries = [];
+
+let regionToFilterBy = {
+  value: ""
+};
+
+// this filter is to work as a reflection
+// so when the value of the filter changed
+// it will update the page countent.
+const filter = new Proxy(regionToFilterBy, {
+  set: function (target, property, value) {
+    Reflect.set(...arguments);
+    // do the filtering
+    createGridSkeleton();
+    showCountries(counteries);
+  }
+});
+
+let filterRegionElements = document.querySelectorAll("#filter-menu-dropdown li");
+
+filterRegionElements.forEach(listItem => {
+  listItem.onclick = setFilter;
+});
+
 const searchInput = document.querySelector("#search");
 
 searchInput.addEventListener('keyup', (event) => {
@@ -16,23 +40,48 @@ searchInput.addEventListener('keyup', (event) => {
     }
     createGridSkeleton();
     fetch(`https://restcountries.com/v3.1/name/${searchValue}?fields=name,cca3,region,population,capital,flags`)
-    .then(response=>response.json())
-    .then(data=> {
-      showCountries(data);
-      showingAllCountries = false;
-    })
-    .catch(error=>console.error(error));
+      .then(response => response.json())
+      .then(data => {
+        counteries = data;
+        showCountries(data);
+        showingAllCountries = false;
+      })
+      .catch(error => console.error(error));
   }, 400);
 });
+
+function setFilter(event) {
+  let selectedFilter = event.currentTarget.innerHTML.trim();
+  if (selectedFilter.normalize() === filter.value.normalize()) {
+    selectedFilter = "";
+    document.getElementById("current-filter").innerHTML = "Filter by region";
+  } else {
+    document.getElementById("current-filter").innerHTML = `Filtered by ${selectedFilter}`;
+  }
+  filter.value = selectedFilter;
+}
 
 /**
  *
  * @param {*} data
  */
- function showCountries(data) {
-  if(Array.isArray(data)){
+function showCountries(data) {
+  if (Array.isArray(data)) {
     let gridInner = '';
-    data.forEach((element, index, array) => {
+    counteries = data;
+    let filteredData = data;
+    if (filter.value.length != 0) {
+      filteredData = filteredData.filter(country => {
+        if (country.region.normalize() === filter.value.normalize()) {
+          return true;
+        }
+        return false;
+      })
+    }
+    if(filteredData.length === 0){
+      alert("No Data Found");
+    }
+    filteredData.forEach((element, index, array) => {
       let flag = element.flags.svg;
       let name = element.name.common;
       let population = element.population;
