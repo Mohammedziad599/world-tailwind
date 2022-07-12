@@ -32,7 +32,7 @@ async function showCountryDetails(data) {
 
   let detailsTemplate = `
     <div>
-    <img src="${data.flags.svg}" alt="${data.name.common} Flag" class="rounded drop-shadow-lg w-full">
+    <img src="${data.flags.svg}" alt="${data.name.common} Flag" class="rounded drop-shadow-lg w-full dark:brightness-75 dark:contrast-125">
     </div>
     <div class="py-3">
       <h3 class="text-3xl font-extrabold">${data.name.common}</h3>

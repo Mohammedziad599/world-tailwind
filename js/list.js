@@ -92,7 +92,7 @@ function showCountries(data) {
         <div class="mb-10">
           <a href="./country.html?code=${code}" class="card block bg-white text-black dark:bg-gray-800 rounded-lg shadow-lg
           dark:text-white overflow-hidden hover:transition-all ease-in-out duration-200 hover:scale-105">
-            <img src="${flag}" alt="${name + " Flag"}" class="w-full h-fit lg:h-72 xl:h-48 object-cover">
+            <img src="${flag}" alt="${name + " Flag"}" class="w-full h-fit lg:h-72 xl:h-48 object-cover dark:brightness-75 dark:contrast-125">
             <div class="card-body px-5 pt-5 pb-10">
               <h3 class="text-xl font-semibold mb-4 with-popup hidden xl:block" aria-hidden="true"
                 ${name.length > 25 ? 'data-toggle="popover" data-content="' + name + '"' : ""}>
