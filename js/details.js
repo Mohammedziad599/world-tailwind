@@ -5,32 +5,33 @@ let countryCode = params.get("code");
 async function showCountryDetails(data) {
   const nativeName = data.name.nativeName[Object.keys(data.name.nativeName)[0]].common
 
-  const currencies = Object.keys(data.currencies).map(key=>{
+  const currencies = Object.keys(data.currencies).map(key => {
     return data.currencies[key].name;
   });
-  const languages = Object.keys(data.languages).map(key=>{
+  const languages = Object.keys(data.languages).map(key => {
     return data.languages[key];
   });
   const borders = [];
-  for(const countryCode of data.borders){
-    try{
-      let data = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}?fields=name`);
-      data = await data.json();
-      borders.push([countryCode, data.name.common]);
-    }catch(error){
-      console.error(error);
-    }
+  let fetches = [];
+  for (const countryCode of data.borders) {
+    fetches.push(
+      fetch(`https://restcountries.com/v3.1/alpha/${countryCode}?fields=name`)
+        .then(response => response.json())
+        .then(data => borders.push([countryCode, data.name.common]))
+        .catch(error => console.error(error))
+    );
   }
-  let borderButtons = borders.map(border=>{
-    let buttonHtml = `<a href="./country.html?code=${border[0]}"
+  Promise.all(fetches).then(() => {
+    let borderButtons = borders.map(border => {
+      let buttonHtml = `<a href="./country.html?code=${border[0]}"
       class="bg-white px-4 mx-1 text-black hover:bg-gray-200 focus:bg-gray-200 active:bg-gray-300 border-box my-1 md:my-1
       dark:bg-gray-800 dark:text-white dark:hover:bg-gray-600 dark:focus:bg-gray-600 dark:active:bg-gray-500 py-2 shadow-md w-fit rounded">
       ${border[1]}
     </a>`;
-    return buttonHtml;
-  });
+      return buttonHtml;
+    });
 
-  let detailsTemplate = `
+    let detailsTemplate = `
     <div>
     <img src="${data.flags.svg}" alt="${data.name.common} Flag" class="rounded drop-shadow-lg w-full dark:brightness-75 dark:contrast-125">
     </div>
@@ -61,6 +62,7 @@ async function showCountryDetails(data) {
     </div>`;
     let detailsElement = document.querySelector("#details");
     detailsElement.innerHTML = detailsTemplate;
+  });
 }
 
 function fetchCountryDetails(code) {
