@@ -29,25 +29,32 @@ filterRegionElements.forEach(listItem => {
 const searchInput = document.querySelector("#search");
 
 searchInput.addEventListener('keyup', (event) => {
-  clearTimeout(searchTypingTimer);
-  let searchValue = event.currentTarget.value.trim();
-  searchTypingTimer = setTimeout(() => {
+  if (event.keyCode === 13) {
+    let searchValue = event.currentTarget.value.trim();
     if (searchValue.length === 0) {
-      if (!showingAllCountries) {
-        getAllCountries();
-      }
+      getAllCountries();
       return;
     }
     createGridSkeleton();
     fetch(`https://restcountries.com/v3.1/name/${searchValue}?fields=name,cca3,region,population,capital,flags`)
-      .then(response => response.json())
+      .then(response => {
+        if (response.ok)
+          return response.json()
+        throw new Error("No countries found");
+      })
       .then(data => {
         counteries = data;
         showCountries(data);
         showingAllCountries = false;
       })
-      .catch(error => console.error(error));
-  }, 400);
+      .catch(error => {
+        console.error(error);
+        let grid = document.getElementById("grid");
+        grid.innerHTML = `
+          <h1 class="text-5xl text-red-700 dark:text-red-400 col-span-full text-center">${error.message}</h1>
+        `;
+      });
+  }
 });
 
 function setFilter(event) {
@@ -78,8 +85,11 @@ function showCountries(data) {
         return false;
       })
     }
-    if(filteredData.length === 0){
-      alert("No Data Found");
+    if (filteredData.length === 0) {
+      let gridLayout = document.getElementById("grid");
+      grid.innerHTML = `
+        <h1 class="text-5xl text-red-700 dark:text-red-400 col-span-full text-center">No Data Found</h1>
+      `;
     }
     filteredData.forEach((element, index, array) => {
       let flag = element.flags.svg;
@@ -172,12 +182,22 @@ function createGridSkeleton() {
 function getAllCountries() {
   createGridSkeleton();
   fetch("https://restcountries.com/v3.1/all?fields=name,cca3,region,population,capital,flags")
-    .then((response) => response.json())
+    .then((response) => {
+      if (response.ok)
+        return response.json()
+      throw new Error("Error");
+    })
     .then((data) => {
       showCountries(data);
       showingAllCountries = true;
     })
-    .catch((error) => console.error(error));
+    .catch((error) => {
+      console.error(error);
+      let gridLayout = document.getElementById("grid");
+      grid.innerHTML = `
+        <h1 class="text-5xl text-red-700 dark:text-red-400 col-span-full text-center">${error.message}</h1>
+      `;
+    });
 }
 
 getAllCountries();
