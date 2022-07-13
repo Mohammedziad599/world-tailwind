@@ -16,7 +16,11 @@ async function showCountryDetails(data) {
   for (const countryCode of data.borders) {
     fetches.push(
       fetch(`https://restcountries.com/v3.1/alpha/${countryCode}?fields=name`)
-        .then(response => response.json())
+        .then(response => {
+          if (response.ok)
+            return response.json()
+          throw new Error("Cannot find country by contry code");
+        })
         .then(data => borders.push([countryCode, data.name.common]))
         .catch(error => console.error(error))
     );
@@ -67,9 +71,19 @@ async function showCountryDetails(data) {
 
 function fetchCountryDetails(code) {
   fetch(`https://restcountries.com/v3.1/alpha/${code}?fields=flags,name,population,region,subregion,capital,tld,currencies,languages,borders`)
-    .then(response => response.json())
+    .then(response => {
+      if (response.ok)
+        return response.json()
+      throw new Error(`No country has the code '${code}'`)
+    })
     .then(data => showCountryDetails(data))
-    .catch(error => console.error(error));
+    .catch(error => {
+      console.error(error);
+      let detailsElement = document.querySelector("#details");
+      detailsElement.innerHTML = `
+        <h1 class="text-5xl text-red-700 dark:text-red-400 col-span-full text-center">${error.message}</h1>
+      `;
+    });
 }
 
 fetchCountryDetails(countryCode);
