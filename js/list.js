@@ -43,9 +43,11 @@ searchInput.addEventListener('keyup', (event) => {
         throw new Error("No countries found");
       })
       .then(data => {
-        counteries = data;
-        showCountries(data);
-        showingAllCountries = false;
+        if (searchValue === event.currentTarget.value.trim()) {
+          counteries = data;
+          showCountries(data);
+          showingAllCountries = false;
+        }
       })
       .catch(error => {
         console.error(error);
