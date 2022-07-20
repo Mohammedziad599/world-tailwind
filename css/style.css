@@ -1,6 +1,24 @@
 *,
 *::after,
-*::before{
+*::before {
   font-family: 'Nunito Sans', sans-serif;
   box-sizing: border-box;
+}
+
+.card.dragging{
+  opacity: 50%;
+}
+
+#fav-box.dragover{
+  border: 1px solid #27ae60;
+}
+
+@media (min-width: 1024px) {
+  #grid{
+    height: calc(100vh - 15rem);
+  }
+
+  #fav-box{
+    height: calc(100vh - 17.5rem);
+  }
 }

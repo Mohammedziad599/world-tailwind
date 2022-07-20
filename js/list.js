@@ -8,6 +8,8 @@ let regionToFilterBy = {
   value: ""
 };
 
+let favouriteCountries = JSON.parse(localStorage.getItem("favouriteCountries")) || {};
+
 // this filter is to work as a reflection
 // so when the value of the filter changed
 // it will update the page countent.
@@ -25,6 +27,54 @@ let filterRegionElements = document.querySelectorAll("#filter-menu-dropdown li")
 filterRegionElements.forEach(listItem => {
   listItem.onclick = setFilter;
 });
+
+const favouriteBox = document.querySelector("#fav-box");
+
+favouriteBox.addEventListener("dragover", event => {
+  event.preventDefault();
+}, false);
+
+favouriteBox.addEventListener("dragenter", event => {
+  event.currentTarget.classList.add("dragover");
+});
+
+favouriteBox.addEventListener("dragleave", event => {
+  event.currentTarget.classList.remove("dragover");
+});
+
+favouriteBox.addEventListener("drop", event => {
+  event.preventDefault();
+  const element = event.currentTarget;
+  element.classList.remove("dragover");
+  let countryCode = event.dataTransfer.getData("country-code");
+  let countryFlag = event.dataTransfer.getData("country-flag");
+  let countryName = event.dataTransfer.getData("country-name");
+  favouriteCountries[countryCode] = {
+    flag: countryFlag,
+    name: countryName,
+    code: countryCode
+  }
+  updateFavouriteBox();
+  localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
+});
+
+function updateFavouriteBox() {
+  const favouriteList = document.getElementById("fav-list");
+  let favHtml = "";
+  Object.entries(favouriteCountries).forEach(([key, value]) => {
+    favHtml += `
+      <li class="flex items-center justify-between h-8 w-full">
+        <a href="./country.html?code=${value.code}" class="flex items-center hover:dark:bg-gray-700 active:dark:bg-gray-600 px-2 rounded-md cursor-pointer">
+          <img src="${value.flag}" alt="${value.name} Flag" class="h-4 w-8">
+          <h3 class="text-lg pl-4 select-none">${value.name}</h3>
+        </a>
+        <span class="material-symbols-rounded text-red-400 cursor-pointer">
+          cancel
+        </span>
+      </li>`;
+  });
+  favouriteList.innerHTML = favHtml;
+}
 
 const searchInput = document.querySelector("#search");
 
@@ -52,8 +102,8 @@ searchInput.addEventListener('keyup', (event) => {
       })
       .catch(error => {
         console.error(error);
-        let grid = document.getElementById("grid");
-        grid.innerHTML = `
+        let gridLayout = document.getElementById("grid");
+        gridLayout.innerHTML = `
           <h1 class="text-5xl text-red-700 dark:text-red-400 col-span-full text-center">${error.message}</h1>
         `;
       });
@@ -90,7 +140,7 @@ function showCountries(data) {
     }
     if (filteredData.length === 0) {
       let gridLayout = document.getElementById("grid");
-      grid.innerHTML = `
+      gridLayout.innerHTML = `
         <h1 class="text-5xl text-red-700 dark:text-red-400 col-span-full text-center">No Data Found</h1>
       `;
     }
@@ -103,9 +153,9 @@ function showCountries(data) {
       let code = element.cca3;
       let template = `
         <div class="mb-10">
-          <a href="./country.html?code=${code}" class="card block bg-white text-black dark:bg-gray-800 rounded-lg shadow-lg
+          <a href="./country.html?code=${code}" data-country-code="${code}" class="card block bg-white text-black dark:bg-gray-800 rounded-lg shadow-lg
           dark:text-white overflow-hidden hover:transition-all ease-in-out duration-200 hover:scale-105">
-            <img src="${flag}" alt="${name + " Flag"}" class="w-full h-fit lg:h-72 xl:h-48 object-cover dark:brightness-75 dark:contrast-125">
+            <img src="${flag}" alt="${name + " Flag"}" class="w-full h-fit lg:h-48 xl:h-56 2xl:h-48 object-cover dark:brightness-75 dark:contrast-125">
             <div class="card-body px-5 pt-5 pb-10">
               <h3 class="text-xl font-semibold mb-4 with-popup hidden xl:block" aria-hidden="true"
                 ${name.length > 25 ? 'data-toggle="popover" data-content="' + name + '"' : ""}>
@@ -138,16 +188,33 @@ function showCountries(data) {
       gridInner += template;
       if (index === array.length - 1) {
         let gridLayout = document.getElementById("grid");
-        grid.innerHTML = gridInner;
+        gridLayout.innerHTML = gridInner;
         let popoverTriggerList = [].slice.call(
           document.querySelectorAll('[data-toggle="popover"]')
         );
-        let popoverList = popoverTriggerList.forEach((element) => {
+        popoverTriggerList.forEach((element) => {
           let content = element.getAttribute("data-content");
           tippy(element, {
             content: content,
             arrow: true,
             placement: "bottom-start",
+          });
+        });
+
+        //add drag event listenter
+        let cardElements = document.querySelectorAll(".card");
+        cardElements.forEach(card => {
+          card.addEventListener("dragstart", event => {
+            event.target.classList.add("dragging");
+            const cardElement = event.currentTarget;
+            const imageElement = cardElement.querySelector("img");
+            const nameElement = cardElement.querySelector('h3[aria-hidden="true"]');
+            event.dataTransfer.setData("country-code", cardElement.getAttribute("data-country-code"));
+            event.dataTransfer.setData("country-flag", imageElement.src);
+            event.dataTransfer.setData("country-name", nameElement.innerText);
+          });
+          card.addEventListener("dragend", event => {
+            event.target.classList.remove("dragging");
           });
         });
       }
@@ -157,12 +224,12 @@ function showCountries(data) {
 
 
 function createGridSkeleton() {
-  let gridElement = document.getElementById("grid");
+  let gridLayout = document.getElementById("grid");
   let skeleton = `
     <div class="mb-10">
       <div class="card block bg-white text-black dark:bg-gray-800 rounded-lg shadow-lg
         dark:text-white overflow-hidden">
-        <div class="w-full h-72 lg:h-72 xl:h-48 object-cover bg-gray-200 dark:bg-gray-500 animate-pulse">
+        <div class="w-full h-80 lg:h-48 xl:h-56 2xl:h-48 object-cover bg-gray-200 dark:bg-gray-500 animate-pulse">
         </div>
         <div class="card-body px-5 pt-5 pb-10">
           <div class="mb-4 h-6 rounded bg-gray-200 dark:bg-gray-500 animate-pulse" aria-hidden="true">
@@ -176,9 +243,9 @@ function createGridSkeleton() {
         </div>
       </div>
     </div>`;
-  gridElement.innerHTML = "";
+  gridLayout.innerHTML = "";
   for (let i = 0; i < 8; i++) {
-    gridElement.innerHTML += skeleton;
+    gridLayout.innerHTML += skeleton;
   }
 }
 
@@ -197,10 +264,11 @@ function getAllCountries() {
     .catch((error) => {
       console.error(error);
       let gridLayout = document.getElementById("grid");
-      grid.innerHTML = `
+      gridLayout.innerHTML = `
         <h1 class="text-5xl text-red-700 dark:text-red-400 col-span-full text-center">${error.message}</h1>
       `;
     });
 }
 
 getAllCountries();
+updateFavouriteBox();
