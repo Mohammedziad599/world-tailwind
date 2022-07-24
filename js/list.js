@@ -28,18 +28,34 @@ filterRegionElements.forEach(listItem => {
   listItem.onclick = setFilter;
 });
 
+document.addEventListener("dragstart", event => {
+  console.log("drag start");
+  console.log("event", event);
+  event.target.classList.add("dragging");
+  const cardElement = event.target;
+  const imageElement = cardElement.querySelector("img");
+  const nameElement = cardElement.querySelector('h3[aria-hidden="true"]');
+  if (nameElement && imageElement && cardElement) {
+    event.dataTransfer.setData("country-code", cardElement.getAttribute("data-country-code"));
+    event.dataTransfer.setData("country-flag", imageElement.src);
+    event.dataTransfer.setData("country-name", nameElement.innerText);
+  }
+});
+
+document.addEventListener("dragend", event => {
+  console.log("drag end");
+  event.target.classList.remove("dragging");
+});
+
 const favouriteBox = document.querySelector("#fav-box");
 
 favouriteBox.addEventListener("dragover", event => {
   event.preventDefault();
+  favouriteBox.classList.add("dragover");
 }, false);
 
-favouriteBox.addEventListener("dragenter", event => {
-  event.currentTarget.classList.add("dragover");
-});
-
 favouriteBox.addEventListener("dragleave", event => {
-  event.currentTarget.classList.remove("dragover");
+  favouriteBox.classList.remove("dragover");
 });
 
 favouriteBox.addEventListener("drop", event => {
@@ -49,13 +65,16 @@ favouriteBox.addEventListener("drop", event => {
   let countryCode = event.dataTransfer.getData("country-code");
   let countryFlag = event.dataTransfer.getData("country-flag");
   let countryName = event.dataTransfer.getData("country-name");
-  favouriteCountries[countryCode] = {
-    flag: countryFlag,
-    name: countryName,
-    code: countryCode
+  console.log(countryCode)
+  if (countryCode && countryFlag && countryName) {
+    favouriteCountries[countryCode] = {
+      flag: countryFlag,
+      name: countryName,
+      code: countryCode
+    }
+    updateFavouriteBox();
+    localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
   }
-  updateFavouriteBox();
-  localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
 });
 
 function updateFavouriteBox() {
@@ -66,14 +85,55 @@ function updateFavouriteBox() {
       <li class="flex items-center justify-between h-8 w-full">
         <a href="./country.html?code=${value.code}" class="flex items-center hover:dark:bg-gray-700 active:dark:bg-gray-600 px-2 rounded-md cursor-pointer">
           <img src="${value.flag}" alt="${value.name} Flag" class="h-4 w-8">
-          <h3 class="text-lg pl-4 select-none">${value.name}</h3>
+          <h3 class="text-lg pl-4 select-none whitespace-nowrap lg:w-32 xl:w-52 overflow-hidden">${value.name}</h3>
         </a>
-        <span class="material-symbols-rounded text-red-400 cursor-pointer">
-          cancel
+        <span class="material-symbols-rounded bg-gray-100 hover:bg-gray-200 active:bg-gray-300
+        dark:bg-gray-700 dark:hover:bg-gray-600 dark:active:bg-gray-500
+        rounded-full text-xl leading-5 cursor-pointer select-none p-0.5" data-country-code="${value.code}" onclick="deleteFromFav(this)">
+          close
         </span>
       </li>`;
   });
   favouriteList.innerHTML = favHtml;
+}
+
+function deleteFromFav(element) {
+  let countryCode = element.getAttribute("data-country-code");
+  delete favouriteCountries[countryCode];
+  updateFavouriteBox();
+  localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
+}
+
+function toggleFav(event) {
+  // let countryCode = element.getAttribute("data-country-code");
+  event.preventDefault();
+  const element = event.target;
+  let countryCode = element.getAttribute("data-country-code");
+  let countryFlag = element.getAttribute("data-country-flag");
+  let countryName = element.getAttribute("data-country-name");
+
+  if (countryCode && countryFlag && countryName) {
+    if (favouriteCountries[countryCode]) {
+      deleteFromFav(element);
+      element.classList.remove("text-orange-500");
+      element.classList.remove("dark:text-orange-500");
+      element.classList.add("text-gray-300");
+      element.classList.add("dark:text-gray-600");
+    } else {
+      favouriteCountries[countryCode] = {
+        flag: countryFlag,
+        name: countryName,
+        code: countryCode
+      }
+      localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
+      updateFavouriteBox();
+      element.classList.remove("text-gray-300");
+      element.classList.remove("dark:text-gray-600");
+      element.classList.add("text-orange-500");
+      element.classList.add("dark:text-orange-500");
+    }
+  }
+
 }
 
 const searchInput = document.querySelector("#search");
@@ -114,7 +174,7 @@ function setFilter(event) {
   let selectedFilter = event.currentTarget.innerHTML.trim();
   if (selectedFilter.normalize() === filter.value.normalize()) {
     selectedFilter = "";
-    document.getElementById("current-filter").innerHTML = "Filter by region";
+    document.getElementById("current-filter").innerHTML = "Filter by";
   } else {
     document.getElementById("current-filter").innerHTML = `Filtered by ${selectedFilter}`;
   }
@@ -131,12 +191,22 @@ function showCountries(data) {
     counteries = data;
     let filteredData = data;
     if (filter.value.length != 0) {
-      filteredData = filteredData.filter(country => {
-        if (country.region.normalize() === filter.value.normalize()) {
-          return true;
-        }
-        return false;
-      })
+      if(filter.value === "Favourites"){
+        filteredData = filteredData.filter(country=>{
+          console.log(country);
+          if(favouriteCountries[country.cca3]){
+            return true;
+          }
+          return false;
+        });
+      }else{
+        filteredData = filteredData.filter(country => {
+          if (country.region.normalize() === filter.value.normalize()) {
+            return true;
+          }
+          return false;
+        });
+      }
     }
     if (filteredData.length === 0) {
       let gridLayout = document.getElementById("grid");
@@ -155,8 +225,8 @@ function showCountries(data) {
         <div class="mb-10">
           <a href="./country.html?code=${code}" data-country-code="${code}" class="card block bg-white text-black dark:bg-gray-800 rounded-lg shadow-lg
           dark:text-white overflow-hidden hover:transition-all ease-in-out duration-200 hover:scale-105">
-            <img src="${flag}" alt="${name + " Flag"}" class="w-full h-fit lg:h-48 xl:h-56 2xl:h-48 object-cover dark:brightness-75 dark:contrast-125">
-            <div class="card-body px-5 pt-5 pb-10">
+            <img src="${flag}" alt="${name + " Flag"}" class="w-full h-fit lg:h-56 xl:h-56 2xl:h-48 object-cover dark:brightness-75 dark:contrast-125">
+            <div class="card-body px-5 pt-5">
               <h3 class="text-xl font-semibold mb-4 with-popup hidden xl:block" aria-hidden="true"
                 ${name.length > 25 ? 'data-toggle="popover" data-content="' + name + '"' : ""}>
                 ${name.length > 25 ? name.substr(0, 24) + "&hellip;" : name}
@@ -176,11 +246,17 @@ function showCountries(data) {
                 </span>
                 ${region}
               </div>
-              <div class="mb-1">
+              <div class="mb-3">
                 <span class="font-semibold mr-1">
                   Capital:
                 </span>
                 ${capital}
+              </div>
+              <div class="mb-2 flex lg:hidden justify-end">
+                <span class="material-symbols-rounded ${favouriteCountries[code] ? "text-orange-500 dark:text-orange-500" : "text-gray-300 dark:text-gray-600"}"
+                onclick="toggleFav(event)" data-country-code="${code}" data-country-flag="${flag}" data-country-name="${name}">
+                  star
+                </span>
               </div>
             </div>
           </a>
@@ -200,23 +276,6 @@ function showCountries(data) {
             placement: "bottom-start",
           });
         });
-
-        //add drag event listenter
-        let cardElements = document.querySelectorAll(".card");
-        cardElements.forEach(card => {
-          card.addEventListener("dragstart", event => {
-            event.target.classList.add("dragging");
-            const cardElement = event.currentTarget;
-            const imageElement = cardElement.querySelector("img");
-            const nameElement = cardElement.querySelector('h3[aria-hidden="true"]');
-            event.dataTransfer.setData("country-code", cardElement.getAttribute("data-country-code"));
-            event.dataTransfer.setData("country-flag", imageElement.src);
-            event.dataTransfer.setData("country-name", nameElement.innerText);
-          });
-          card.addEventListener("dragend", event => {
-            event.target.classList.remove("dragging");
-          });
-        });
       }
     });
   }
@@ -229,7 +288,7 @@ function createGridSkeleton() {
     <div class="mb-10">
       <div class="card block bg-white text-black dark:bg-gray-800 rounded-lg shadow-lg
         dark:text-white overflow-hidden">
-        <div class="w-full h-80 lg:h-48 xl:h-56 2xl:h-48 object-cover bg-gray-200 dark:bg-gray-500 animate-pulse">
+        <div class="w-full h-80 lg:h-56 xl:h-56 2xl:h-48 object-cover bg-gray-200 dark:bg-gray-500 animate-pulse">
         </div>
         <div class="card-body px-5 pt-5 pb-10">
           <div class="mb-4 h-6 rounded bg-gray-200 dark:bg-gray-500 animate-pulse" aria-hidden="true">

@@ -9,8 +9,12 @@
   opacity: 50%;
 }
 
+#fav-box{
+  border: 2px solid transparent;
+}
+
 #fav-box.dragover{
-  border: 1px solid #27ae60;
+  border-color: #27ae60;
 }
 
 @media (min-width: 1024px) {
