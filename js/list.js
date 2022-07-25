@@ -102,6 +102,7 @@ function deleteFromFav(element) {
   delete favouriteCountries[countryCode];
   updateFavouriteBox();
   localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
+  showCountries(counteries);
 }
 
 function toggleFav(event) {
@@ -132,6 +133,7 @@ function toggleFav(event) {
       element.classList.add("text-orange-500");
       element.classList.add("dark:text-orange-500");
     }
+    showCountries(counteries);
   }
 
 }
