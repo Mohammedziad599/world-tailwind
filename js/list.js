@@ -1,3 +1,5 @@
+import { getFromLocalStorage, saveToLocalStorage } from "./localstorage.js";
+
 let searchTypingTimer;
 
 let showingAllCountries = true;
@@ -8,7 +10,7 @@ let regionToFilterBy = {
   value: ""
 };
 
-let favouriteCountries = JSON.parse(localStorage.getItem("favouriteCountries")) || {};
+let favouriteCountries = getFromLocalStorage("favouriteCountries");
 
 // this filter is to work as a reflection
 // so when the value of the filter changed
@@ -29,8 +31,6 @@ filterRegionElements.forEach(listItem => {
 });
 
 document.addEventListener("dragstart", event => {
-  console.log("drag start");
-  console.log("event", event);
   event.target.classList.add("dragging");
   const cardElement = event.target;
   const imageElement = cardElement.querySelector("img");
@@ -43,7 +43,6 @@ document.addEventListener("dragstart", event => {
 });
 
 document.addEventListener("dragend", event => {
-  console.log("drag end");
   event.target.classList.remove("dragging");
 });
 
@@ -65,15 +64,18 @@ favouriteBox.addEventListener("drop", event => {
   let countryCode = event.dataTransfer.getData("country-code");
   let countryFlag = event.dataTransfer.getData("country-flag");
   let countryName = event.dataTransfer.getData("country-name");
-  console.log(countryCode)
   if (countryCode && countryFlag && countryName) {
-    favouriteCountries[countryCode] = {
-      flag: countryFlag,
-      name: countryName,
-      code: countryCode
+    if (favouriteCountries[countryCode]) {
+      openModal("Item Exist", "The country already exist in favourites");
+    } else {
+      favouriteCountries[countryCode] = {
+        flag: countryFlag,
+        name: countryName,
+        code: countryCode
+      }
+      updateFavouriteBox();
+      saveToLocalStorage("favouriteCountries", favouriteCountries);
     }
-    updateFavouriteBox();
-    localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
   }
 });
 
@@ -87,11 +89,13 @@ function updateFavouriteBox() {
           <img src="${value.flag}" alt="${value.name} Flag" class="h-4 w-8">
           <h3 class="text-lg pl-4 select-none whitespace-nowrap lg:w-32 xl:w-52 overflow-hidden">${value.name}</h3>
         </a>
-        <span class="material-symbols-rounded bg-gray-100 hover:bg-gray-200 active:bg-gray-300
-        dark:bg-gray-700 dark:hover:bg-gray-600 dark:active:bg-gray-500
-        rounded-full text-xl leading-5 cursor-pointer select-none p-0.5" data-country-code="${value.code}" onclick="deleteFromFav(this)">
-          close
-        </span>
+        <button class="bg-transparent border-none" data-country-code="${value.code}" onclick="deleteFromFav(this)">
+          <span class="material-symbols-rounded bg-gray-100 hover:bg-gray-200 active:bg-gray-300
+          dark:bg-gray-700 dark:hover:bg-gray-600 dark:active:bg-gray-500
+          rounded-full text-xl leading-5 cursor-pointer select-none p-0.5">
+            close
+          </span>
+        </button>
       </li>`;
   });
   favouriteList.innerHTML = favHtml;
@@ -101,21 +105,21 @@ function deleteFromFav(element) {
   let countryCode = element.getAttribute("data-country-code");
   delete favouriteCountries[countryCode];
   updateFavouriteBox();
-  localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
+  saveToLocalStorage("favouriteCountries", favouriteCountries);
   showCountries(counteries);
 }
 
 function toggleFav(event) {
   // let countryCode = element.getAttribute("data-country-code");
   event.preventDefault();
-  const element = event.target;
-  let countryCode = element.getAttribute("data-country-code");
-  let countryFlag = element.getAttribute("data-country-flag");
-  let countryName = element.getAttribute("data-country-name");
+  const element = event.currentTarget.querySelector(".icon");
+  let countryCode = event.currentTarget.getAttribute("data-country-code");
+  let countryFlag = event.currentTarget.getAttribute("data-country-flag");
+  let countryName = event.currentTarget.getAttribute("data-country-name");
 
   if (countryCode && countryFlag && countryName) {
     if (favouriteCountries[countryCode]) {
-      deleteFromFav(element);
+      deleteFromFav(event.currentTarget);
       element.classList.remove("text-orange-500");
       element.classList.remove("dark:text-orange-500");
       element.classList.add("text-gray-300");
@@ -126,7 +130,7 @@ function toggleFav(event) {
         name: countryName,
         code: countryCode
       }
-      localStorage.setItem("favouriteCountries", JSON.stringify(favouriteCountries));
+      saveToLocalStorage("favouriteCountries", favouriteCountries);
       updateFavouriteBox();
       element.classList.remove("text-gray-300");
       element.classList.remove("dark:text-gray-600");
@@ -173,7 +177,7 @@ searchInput.addEventListener('keyup', (event) => {
 });
 
 function setFilter(event) {
-  let selectedFilter = event.currentTarget.innerHTML.trim();
+  let selectedFilter = event.currentTarget.getAttribute("data-filter-key");
   if (selectedFilter.normalize() === filter.value.normalize()) {
     selectedFilter = "";
     document.getElementById("current-filter").innerHTML = "Filter by";
@@ -193,15 +197,14 @@ function showCountries(data) {
     counteries = data;
     let filteredData = data;
     if (filter.value.length != 0) {
-      if(filter.value === "Favourites"){
-        filteredData = filteredData.filter(country=>{
-          console.log(country);
-          if(favouriteCountries[country.cca3]){
+      if (filter.value === "Favourites") {
+        filteredData = filteredData.filter(country => {
+          if (favouriteCountries[country.cca3]) {
             return true;
           }
           return false;
         });
-      }else{
+      } else {
         filteredData = filteredData.filter(country => {
           if (country.region.normalize() === filter.value.normalize()) {
             return true;
@@ -226,7 +229,7 @@ function showCountries(data) {
       let template = `
         <div class="mb-10">
           <a href="./country.html?code=${code}" data-country-code="${code}" class="card block bg-white text-black dark:bg-gray-800 rounded-lg shadow-lg
-          dark:text-white overflow-hidden hover:transition-all ease-in-out duration-200 hover:scale-105">
+          dark:text-white overflow-hidden hover:transition-all ease-in-out duration-200 hover:scale-105 hover:z-50">
             <img src="${flag}" alt="${name + " Flag"}" class="w-full h-fit lg:h-56 xl:h-56 2xl:h-48 object-cover dark:brightness-75 dark:contrast-125">
             <div class="card-body px-5 pt-5">
               <h3 class="text-xl font-semibold mb-4 with-popup hidden xl:block" aria-hidden="true"
@@ -255,10 +258,12 @@ function showCountries(data) {
                 ${capital}
               </div>
               <div class="mb-2 flex lg:hidden justify-end">
-                <span class="material-symbols-rounded ${favouriteCountries[code] ? "text-orange-500 dark:text-orange-500" : "text-gray-300 dark:text-gray-600"}"
+                <button class="bg-transparent border-none"
                 onclick="toggleFav(event)" data-country-code="${code}" data-country-flag="${flag}" data-country-name="${name}">
-                  star
-                </span>
+                  <span class="icon material-symbols-rounded ${favouriteCountries[code] ? "text-orange-500 dark:text-orange-500" : "text-gray-300 dark:text-gray-600"}">
+                    star
+                  </span
+                </button>
               </div>
             </div>
           </a>

@@ -23,7 +23,7 @@ tailwind.config = {
         sm: '2rem',
         lg: '2rem',
         xl: '3rem',
-       '2xl': '4rem',
+        '2xl': '4rem',
       },
     },
   }

@@ -1,25 +1,25 @@
 setTheme();
 
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener('change',function(){
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener('change', function () {
   setTheme();
 });
 
-function setThemeLight(){
+function setThemeLight() {
   localStorage.theme = 'light';
   setTheme();
 }
 
-function setThemeDark(){
+function setThemeDark() {
   localStorage.theme = 'dark';
   setTheme();
 }
 
-function setThemePrefered(){
+function setThemePrefered() {
   localStorage.removeItem('theme');
   setTheme();
 }
 
-function setTheme(){
+function setTheme() {
   if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.classList.add('dark')
   } else {
